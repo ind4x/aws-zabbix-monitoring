@@ -1,106 +1,118 @@
-# AWS cloud monitoring infrastructure: centralized Zabbix deployment
+# AWS Cloud Monitoring Infrastructure: Centralized Zabbix Deployment
 
-Bottom Line Up Front: This project provides a robust, enterprise-grade
-monitoring solution architected on Amazon Web Services (AWS). It implements a
-centralized observability stack using Zabbix containerized via Docker to monitor
-a hybrid cloud environment consisting of Linux and Windows Server EC2
-instances.
-
-## Technical architecture
-
-The infrastructure is designed for high portability and visibility across a
-distributed cloud network:
-
-1.  **Monitoring core**: A Docker-composed stack (Zabbix Server, Web Frontend,
-    and MySQL database) hosted on an AWS EC2 instance.
-2.  **Telemetry collection**: Distributed Zabbix Agents deployed on target EC2
-    instances (Ubuntu and Windows Server).
-3.  **Network topology**: Deployed within a custom AWS VPC with granular
-    security group rules for encrypted telemetry traffic.
-4.  **Containerization**: Leveraging Docker for service isolation and rapid
-    deployment of the monitoring core.
+This project implements an enterprise-grade cloud observability and infrastructure
+monitoring platform on Amazon Web Services (AWS). It establishes a containerized
+Zabbix server stack orchestrating metric ingestion across a hybrid cloud fleet
+of Ubuntu Linux and Windows Server EC2 instances.
 
 ---
 
-## Technical stack
-
-*   **Cloud provider**: Amazon Web Services (AWS)
-*   **Infrastructure**: EC2 (Elastic Compute Cloud), VPC (Virtual Private Cloud)
-*   **Monitoring engine**: Zabbix 6.x / 7.x
-*   **Containerization**: Docker / Docker Compose
-*   **Operating systems**: Ubuntu (Linux), Windows Server 2022
-*   **Database**: MySQL (Relational persistence for metrics)
-
----
-
-## System features
-
-### 1. Centralized observability
-*   Single-pane-of-glass dashboard for monitoring disparate cloud assets.
-*   Real-time health tracking of CPU, memory, disk I/O, and network throughput.
-*   Automated alerting system for critical infrastructure events.
-
-### 2. Containerized deployment
-*   Microservices-based architecture for the Zabbix core.
-*   Environment isolation using Docker volumes for persistent metric storage.
-*   Simplified scaling and update cycles via Docker Compose orchestration.
-
-### 3. Hybrid agent configuration
-*   **Linux agents**: Automated installation and configuration via shell
-    scripts for Ubuntu instances.
-*   **Windows agents**: Systematic deployment for Windows Server monitoring
-    using MSI installers and custom configuration files.
-*   **Active/passive monitoring**: Support for both agent-push and server-pull
-    data collection methods.
-
-### 4. Cloud security
-*   Ingress/egress filtering via AWS Security Groups (ports 10050/10051).
-*   Encrypted communication between agents and the central server.
-*   Role-based access control for the monitoring web interface.
-
----
-
-## Project structure
+## Technical Architecture
 
 ```text
-├── agents/          # Agent installation scripts (Linux/Windows)
-├── architecture/    # Network diagrams and topology maps
-├── report/          # Technical documentation and performance reports
-├── zabbix-server/   # Docker orchestration files (.yml, .env)
-└── README.md        # System documentation
++-------------------------------------------------------------------------------+
+|                            Amazon Web Services (AWS)                          |
+|                                                                               |
+|   Custom Virtual Private Cloud (VPC: 10.0.0.0/16)                             |
+|                                                                               |
+|   +---------------------------------------+                                   |
+|   |         Monitoring Host (EC2)         |                                   |
+|   |   Docker Compose Microservices        |                                   |
+|   |   - Zabbix Web Frontend (Port 80)     |<================== Web Admin      |
+|   |   - Zabbix Server Core (Port 10051)   |                    (Port 80/HTTP) |
+|   |   - MySQL Database (Persistent Volume)|                                   |
+|   +---------------------------------------+                                   |
+|                       ^                   ^                                   |
+|                       | (Telemetry Push/  |                                   |
+|                       |  Pull: 10050/10051)                                   |
+|                       |                   |                                   |
+|   +-------------------+---+           +---+-------------------+               |
+|   |  Target Linux Node    |           |  Target Windows Node  |               |
+|   |  - AWS EC2 (Ubuntu)   |           |  - AWS EC2 (Win 2022) |               |
+|   |  - Zabbix Agent (Deb) |           |  - Zabbix Agent (MSI) |               |
+|   |  - System Health Dals |           |  - Perfmon Telemetry  |               |
+|   +-----------------------+           +-----------------------+               |
++-------------------------------------------------------------------------------+
 ```
 
 ---
 
-## Deployment and setup
+## Key Features
 
-### Prerequisites
-*   AWS account with EC2 permissions.
-*   Docker and Docker Compose installed on the host instance.
-*   Configured security groups for Zabbix communication.
-
-### 1. Core server deployment
-1.  Access your monitoring EC2 instance via SSH.
-2.  Navigate to the server directory:
-    ```bash
-    cd zabbix-server
-    ```
-3.  Initialize the stack:
-    ```bash
-    docker-compose up -d
-    ```
-
-### 2. Agent provisioning
-Refer to the `agents/` directory for platform-specific instructions to connect
-remote instances to the central server.
+- **Single-Pane Observability:** Centralized dashboard tracking CPU utilization, physical memory pressure, disk I/O latency, and interface throughput across hybrid nodes.
+- **Containerized Core:** Microservices-based deployment utilizing Docker Compose, ensuring isolated database volumes and reproducible provisioning.
+- **Hybrid Platform Agents:** Shell automation for Ubuntu Linux instances and MSI service scripts for Windows Server telemetry collection.
+- **VPC Security & Ingress Filtering:** Hardened AWS Security Groups restricting agent-server traffic to internal subnet ports (10050/10051).
+- **Proactive Threshold Alerts:** Preconfigured trigger matrices for proactive incident detection before service degradation occurs.
 
 ---
 
-## Access and governance
+## Project Structure
 
-The monitoring interface is accessible via the EC2 Public IP on port 80.
-*   **Default gateway**: `http://<EC2_PUBLIC_IP>`
-*   **Authentication**: Admin / zabbix (Default - change upon initialization)
+```text
+aws-zabbix-monitoring/
+├── README.md                          # Technical specification and architecture guide
+├── zabbix-server/                     # Docker orchestration manifests
+│   ├── docker-compose.yml             # Zabbix Server, Web Frontend, and MySQL services
+│   └── .env.example                   # Environment configuration template
+├── agents/                            # Automated agent deployment scripts
+│   ├── linux-agent/                   # Ubuntu systemd installation and configuration
+│   └── windows-agent/                 # Windows Server configuration manifests
+├── architecture/                      # Network topology diagrams and security matrices
+└── report/                            # Comprehensive architectural audit and verification report
+```
 
-Authored by Youssef Fellah.
-Developed for the Engineering Cycle - Mundiapolis University.
+---
+
+## Deployment & Setup
+
+### Prerequisites
+- AWS Account with EC2, VPC, and Security Group provisioning permissions
+- Target EC2 host with Docker Engine and Docker Compose installed
+
+### 1. Launch Central Monitoring Server
+1. SSH into the designated monitoring EC2 instance:
+   ```bash
+   ssh -i key.pem ubuntu@<MONITORING_EC2_IP>
+   ```
+2. Clone the repository and initialize the stack:
+   ```bash
+   git clone git@github.com:ind4x/aws-zabbix-monitoring.git
+   cd aws-zabbix-monitoring/zabbix-server
+   docker compose up -d
+   ```
+
+### 2. Provision Target Agents
+- **Ubuntu Nodes:** Run `agents/linux-agent/install-agent.sh <MONITORING_SERVER_IP>`
+- **Windows Nodes:** Install the Zabbix Agent MSI and specify the Server IP in `zabbix_agentd.conf`.
+
+---
+
+## Access & Governance
+
+The monitoring interface is reachable via the public or internal DNS of the monitoring EC2 instance:
+- **URL:** `http://<EC2_PUBLIC_IP>`
+- **Initial Credentials:** `Admin` / `zabbix` (enforce password change upon initialization)
+
+---
+
+## Technology Stack
+
+- **Cloud Platform:** Amazon Web Services (EC2, VPC, Security Groups, Elastic IPs)
+- **Monitoring Platform:** Zabbix (Server, Agent, Web Interface)
+- **Containerization:** Docker, Docker Compose
+- **Database:** MySQL Server 8.0
+- **Operating Systems:** Ubuntu Linux, Microsoft Windows Server 2022
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Author
+
+- **Author:** Youssef Fellah ([ind4x_](https://github.com/ind4x))
+- **Institution:** Mundiapolis University, Engineering Cycle
